@@ -12,6 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "jsx": "react-jsx",
     "lib": ["ES2022"],
     "types": ["node"]
   },

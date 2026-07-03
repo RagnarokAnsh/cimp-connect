@@ -7,6 +7,7 @@ the trust anchor, so **the secret never leaves your server.**
 
 - **`core`** — framework-agnostic mint/URL helpers (works anywhere).
 - **`/nestjs`** — a drop-in `SupportModule` exposing `GET /support/handoff`.
+- **`/react`** — a drop-in `<GetSupportButton />` for the frontend.
 - **`cimp-connect init`** — a CLI that registers the platform in CIMP and writes your `.env`.
 
 ## Install
@@ -23,6 +24,19 @@ registry and authenticate with a GitHub token that has `read:packages`.
 
 ```bash
 npm i @ragnarokansh/cimp-connect
+```
+
+> **Note:** GitHub Packages requires authentication for *every* consumer — even
+> when the repo/package is public. Each install needs a GitHub token with
+> `read:packages` and the `.npmrc` above.
+
+### Install from the public repo (no token, recommended)
+
+Skip the registry + token entirely and install straight from GitHub — the
+package builds itself on install (`prepare` script):
+
+```bash
+npm i github:RagnarokAnsh/cimp-connect
 ```
 
 ## Quick setup (CLI)
@@ -81,6 +95,26 @@ SupportModule.forRoot({
   getUser: (req) => ({ id: req.user.id, name: req.user.name, email: req.user.email }),
 });
 ```
+
+## React usage (frontend)
+
+Install the same package in the frontend and drop the button anywhere — it
+links to your **backend's** handoff endpoint (never to CIMP directly, so no
+secret is ever in the browser):
+
+```tsx
+import { GetSupportButton } from '@ragnarokansh/cimp-connect/react';
+
+// default: points at /api/support/handoff on the same origin
+<GetSupportButton className="your-classes" />
+
+// different API origin (e.g. Vite/Next dev, or API on another host):
+<GetSupportButton handoffUrl={`${import.meta.env.VITE_API_URL}/support/handoff`} />
+```
+
+Unstyled by design (`className`/`style` pass through); renders an `<a>` that
+opens the CIMP reporter form in a new tab. Works in Vite, CRA, and Next.js
+(server or client components).
 
 ## Core (any framework)
 

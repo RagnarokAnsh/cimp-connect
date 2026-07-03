@@ -89,7 +89,12 @@ Next steps
        }),
      })
 
-3) Point users at  GET /api/support/handoff  (a link or button).
+3) Frontend: install the same package and drop in the button:
+
+     import { GetSupportButton } from '@ragnarokansh/cimp-connect/react';
+     <GetSupportButton handoffUrl="/api/support/handoff" />
+
+   (or any plain link/button pointing at GET /api/support/handoff).
 `);
 }
 
