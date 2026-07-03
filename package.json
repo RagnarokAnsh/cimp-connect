@@ -35,7 +35,8 @@
     "./element": {
       "types": "./dist/element/index.d.ts",
       "default": "./dist/element/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "bin": {
     "cimp-connect": "dist/cli/index.js"
