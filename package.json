@@ -12,6 +12,13 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "nestjs": ["dist/nestjs/index.d.ts"],
+      "react": ["dist/react/index.d.ts"],
+      "element": ["dist/element/index.d.ts"]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
