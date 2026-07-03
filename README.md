@@ -7,7 +7,8 @@ the trust anchor, so **the secret never leaves your server.**
 
 - **`core`** — framework-agnostic mint/URL helpers (works anywhere).
 - **`/nestjs`** — a drop-in `SupportModule` exposing `GET /support/handoff`.
-- **`/react`** — a drop-in `<GetSupportButton />` for the frontend.
+- **`/react`** — a drop-in `<GetSupportButton />` for React/Next frontends.
+- **`/element`** — a `<cimp-support-button>` Web Component for Angular, Vue, Svelte, or plain HTML.
 - **`cimp-connect init`** — a CLI that registers the platform in CIMP and writes your `.env`.
 
 ## Install
@@ -96,11 +97,14 @@ SupportModule.forRoot({
 });
 ```
 
-## React usage (frontend)
+## Frontend usage (any framework)
 
-Install the same package in the frontend and drop the button anywhere — it
+Install the same package in the frontend and drop the button anywhere. It
 links to your **backend's** handoff endpoint (never to CIMP directly, so no
-secret is ever in the browser):
+secret is ever in the browser), and opens the CIMP reporter form in a new tab.
+Both variants are unstyled by design — style them like any element in your app.
+
+### React / Next.js — `/react`
 
 ```tsx
 import { GetSupportButton } from '@ragnarokansh/cimp-connect/react';
@@ -112,9 +116,32 @@ import { GetSupportButton } from '@ragnarokansh/cimp-connect/react';
 <GetSupportButton handoffUrl={`${import.meta.env.VITE_API_URL}/support/handoff`} />
 ```
 
-Unstyled by design (`className`/`style` pass through); renders an `<a>` that
-opens the CIMP reporter form in a new tab. Works in Vite, CRA, and Next.js
-(server or client components).
+Works in Vite, CRA, and Next.js (server or client components).
+
+### Angular / Vue / Svelte / plain HTML — `/element`
+
+Register the Web Component once at startup (safe to call anywhere; no-op on
+the server), then use the tag:
+
+```ts
+// Angular: main.ts   ·   Vue: main.ts   ·   Svelte: entry file
+import { defineCimpSupportButton } from '@ragnarokansh/cimp-connect/element';
+defineCimpSupportButton();
+```
+
+```html
+<cimp-support-button handoff-url="/api/support/handoff">
+  Get Support
+</cimp-support-button>
+```
+
+- **Angular:** add `CUSTOM_ELEMENTS_SCHEMA` to the module/component `schemas`
+  so the template compiler accepts the custom tag.
+- **Vue 3:** optionally mark it as a custom element
+  (`compilerOptions.isCustomElement = (t) => t === 'cimp-support-button'`)
+  to silence the unknown-component warning.
+- **Styling:** it inherits `color`/`font`; target the inner link with
+  `cimp-support-button::part(link) { ... }`. Add `hide-icon` to drop the icon.
 
 ## Core (any framework)
 

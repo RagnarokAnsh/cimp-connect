@@ -1,6 +1,6 @@
 {
   "name": "@ragnarokansh/cimp-connect",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Connect a Node backend to a CIMP support portal — mint hand-off tokens and redirect users to the reporter form.",
   "license": "UNLICENSED",
   "publishConfig": {
@@ -24,6 +24,10 @@
     "./react": {
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
+    },
+    "./element": {
+      "types": "./dist/element/index.d.ts",
+      "default": "./dist/element/index.js"
     }
   },
   "bin": {
