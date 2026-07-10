@@ -1,0 +1,5 @@
+# The Java/Spring artifact lives in ./java (repo root is the npm package).
+jdk:
+  - openjdk17
+install:
+  - cd java && mvn -B -ntp -DskipTests clean install

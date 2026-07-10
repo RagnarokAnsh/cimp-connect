@@ -71,7 +71,12 @@ Next steps
 1) Install the package (if you haven't):
      npm i @ragnarokansh/cimp-connect
 
-2) Register the module in your AppModule — supply ONE getUser adapter:
+2) Wire the backend — Express is one line:
+
+     const { cimpHandoff } = require('@ragnarokansh/cimp-connect/express');
+     app.get('/api/support/handoff', requireAuth, cimpHandoff());
+
+   NestJS — register the module in your AppModule with ONE getUser adapter:
 
      import { SupportModule } from '@ragnarokansh/cimp-connect/nestjs';
      import { ConfigService } from '@nestjs/config';

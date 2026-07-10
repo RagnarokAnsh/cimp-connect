@@ -1,7 +1,7 @@
 {
   "name": "@ragnarokansh/cimp-connect",
-  "version": "0.3.0",
-  "description": "Connect a Node backend to a CIMP support portal — mint hand-off tokens and redirect users to the reporter form.",
+  "version": "0.4.0",
+  "description": "Connect any backend to a CIMP support portal — mint hand-off tokens and redirect users to the reporter form. Adapters for Express, NestJS, Next.js, React and Web Components (Angular/Vue/Svelte); Spring Boot lives in ./java.",
   "license": "UNLICENSED",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -15,6 +15,8 @@
   "typesVersions": {
     "*": {
       "nestjs": ["dist/nestjs/index.d.ts"],
+      "express": ["dist/express/index.d.ts"],
+      "next": ["dist/next/index.d.ts"],
       "react": ["dist/react/index.d.ts"],
       "element": ["dist/element/index.d.ts"]
     }
@@ -27,6 +29,14 @@
     "./nestjs": {
       "types": "./dist/nestjs/index.d.ts",
       "default": "./dist/nestjs/index.js"
+    },
+    "./express": {
+      "types": "./dist/express/index.d.ts",
+      "default": "./dist/express/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "default": "./dist/next/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",
