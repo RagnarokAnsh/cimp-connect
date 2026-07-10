@@ -127,17 +127,42 @@ async function api(url: string, method: string, body?: unknown, token?: string):
 }
 
 async function main(): Promise<void> {
-  const cmd = process.argv[2];
+  const args = process.argv.slice(2);
+  const cmd = args.find((a) => !a.startsWith('-'));
+
+  if (args.includes('--insecure')) {
+    // Self-signed cert on the CIMP host (e.g. a plain-IP deployment). Applies
+    // to this CLI process only — the runtime package never calls CIMP.
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    console.log('⚠  --insecure: TLS certificate verification disabled for this run.');
+  }
+
   if (cmd === 'init') {
     await init();
     return;
   }
   console.log('cimp-connect — connect a Node backend to a CIMP support portal\n');
-  console.log('Usage:\n  cimp-connect init    Register this project as a CIMP platform and write .env');
+  console.log(
+    'Usage:\n  cimp-connect init [--insecure]    Register this project as a CIMP platform and write .env\n' +
+      '                                    (--insecure: accept a self-signed CIMP certificate)',
+  );
   process.exit(cmd ? 1 : 0);
 }
 
-main().catch((e: Error) => {
-  console.error('\n✗', e.message);
+main().catch((e: unknown) => {
+  const err = e as Error & { cause?: { code?: string; message?: string } };
+  console.error('\n✗', err.message);
+  // Node's fetch wraps network/TLS failures in an opaque "fetch failed" —
+  // surface the underlying cause so the fix is obvious.
+  if (err.cause) {
+    console.error('  cause:', err.cause.code ?? err.cause.message ?? err.cause);
+    if (
+      err.cause.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' ||
+      err.cause.code === 'SELF_SIGNED_CERT_IN_CHAIN' ||
+      err.cause.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
+    ) {
+      console.error('  The CIMP host uses a self-signed certificate — re-run with --insecure.');
+    }
+  }
   process.exit(1);
 });
