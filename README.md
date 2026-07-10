@@ -46,8 +46,15 @@ npm i github:RagnarokAnsh/cimp-connect
 ## Quick setup (CLI)
 
 ```bash
+# after installing the package (recommended — you need it anyway):
 npx cimp-connect init
+
+# or one-shot without installing:
+npx github:RagnarokAnsh/cimp-connect init
 ```
+
+> Plain `npx cimp-connect` only works once the package is installed — the
+> package isn't on the public npm registry, so npx can't fetch it by name.
 
 It logs in as a CIMP admin, creates the platform, captures its signing secret,
 and appends `CIMP_PLATFORM_KEY` / `CIMP_HANDOFF_SECRET` / `CIMP_SUPPORT_URL` to
