@@ -26,11 +26,11 @@ Requires Java 17+; the auto-configuration targets Spring Boot 3.x.
 <dependency>
   <groupId>com.github.ragnarokansh</groupId>
   <artifactId>cimp-connect</artifactId>
-  <version>v0.4.1</version>
+  <version>v0.4.2</version>
 </dependency>
 ```
 
-Gradle: `implementation 'com.github.ragnarokansh:cimp-connect:v0.4.1'` with
+Gradle: `implementation 'com.github.ragnarokansh:cimp-connect:v0.4.2'` with
 `maven { url 'https://jitpack.io' }` in repositories.
 
 ## Spring Boot setup

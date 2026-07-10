@@ -1,6 +1,6 @@
 {
   "name": "@ragnarokansh/cimp-connect",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Connect any backend to a CIMP support portal — mint hand-off tokens and redirect users to the reporter form. Adapters for Express, NestJS, Next.js, React and Web Components (Angular/Vue/Svelte); Spring Boot lives in ./java.",
   "license": "UNLICENSED",
   "publishConfig": {
