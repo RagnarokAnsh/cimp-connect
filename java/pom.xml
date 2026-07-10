@@ -6,7 +6,7 @@
 
   <groupId>com.github.ragnarokansh</groupId>
   <artifactId>cimp-connect</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
   <packaging>jar</packaging>
 
   <name>cimp-connect</name>
@@ -18,6 +18,21 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>3.3.5</spring-boot.version>
   </properties>
+
+  <build>
+    <plugins>
+      <!-- Pinned: JitPack's default Maven ships a compiler plugin too old to
+           honor maven.compiler.release (falls back to source 5). -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>17</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <dependencyManagement>
     <dependencies>
