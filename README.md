@@ -56,6 +56,26 @@ npx github:RagnarokAnsh/cimp-connect init
 > Plain `npx cimp-connect` only works once the package is installed — the
 > package isn't on the public npm registry, so npx can't fetch it by name.
 
+## Manual setup (no CLI)
+
+The CLI is a convenience, not a requirement. Everything it does can be done by
+hand — use this path if you'd rather not have a tool write to `.env`:
+
+1. In the CIMP web UI: **Admin → Platforms → New platform** (pick a lowercase
+   key, e.g. `my-app`) → **Rotate** → copy the secret it shows.
+2. Provide three values to your backend **however you manage secrets** —
+   `.env` file, real environment variables (PM2/systemd/Docker), or a secrets
+   manager:
+   - `CIMP_PLATFORM_KEY` — the key from step 1
+   - `CIMP_HANDOFF_SECRET` — the rotated secret (server-side only, never in
+     frontend code)
+   - `CIMP_SUPPORT_URL` — the CIMP base URL
+
+The package reads these from `process.env` at request time (Spring: the
+`cimp.*` properties) and never writes any file. At runtime it makes **no
+network calls to CIMP** — it only signs a short-lived token locally; the
+signature is the entire trust relationship.
+
 It logs in as a CIMP admin, creates the platform, captures its signing secret,
 and appends `CIMP_PLATFORM_KEY` / `CIMP_HANDOFF_SECRET` / `CIMP_SUPPORT_URL` to
 your `.env`. Then wire the adapter for your framework (below).
