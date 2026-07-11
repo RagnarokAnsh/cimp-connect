@@ -1,6 +1,7 @@
 'use client';
 
 import type { AnchorHTMLAttributes, ReactElement } from 'react';
+import { appendContextToUrl } from '../diagnostics';
 
 export interface GetSupportButtonProps
   extends AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -87,8 +88,11 @@ export function GetSupportButton({
         const res = await fetch(handoffUrl, { headers, credentials });
         if (!res.ok) throw new Error(`Handoff request failed: ${res.status}`);
         const { url } = (await res.json()) as { url: string };
-        if (win) win.location.href = url;
-        else window.open(url, '_blank');
+        // Diagnostics ride the URL FRAGMENT (never sent to any server); no-op
+        // unless the app called initCimpDiagnostics().
+        const target = await appendContextToUrl(url);
+        if (win) win.location.href = target;
+        else window.open(target, '_blank');
       } catch (error) {
         win?.close();
         if (onHandoffError) onHandoffError(error);

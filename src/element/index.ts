@@ -34,6 +34,8 @@
  * outside with `cimp-support-button::part(link) { ... }`.
  */
 
+import { appendContextToUrl } from '../diagnostics';
+
 const ICON_SVG =
   '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
   'style="width:1em;height:1em;flex:none;">' +
@@ -129,8 +131,11 @@ export function defineCimpSupportButton(
         const res = await fetch(this.handoffUrl, { headers, credentials });
         if (!res.ok) throw new Error(`Handoff request failed: ${res.status}`);
         const { url } = (await res.json()) as { url: string };
-        if (win) win.location.href = url;
-        else window.open(url, '_blank');
+        // Diagnostics ride the URL FRAGMENT (never sent to any server); no-op
+        // unless the host app called initCimpDiagnostics().
+        const target = await appendContextToUrl(url);
+        if (win) win.location.href = target;
+        else window.open(target, '_blank');
       } catch (error) {
         win?.close();
         if (config.onError) config.onError(error);

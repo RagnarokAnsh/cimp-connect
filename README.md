@@ -240,6 +240,33 @@ defineCimpSupportButton({
 - **Styling:** it inherits `color`/`font`; target the inner link with
   `cimp-support-button::part(link) { ... }`. Add `hide-icon` to drop the icon.
 
+## Diagnostics — pre-diagnosed reports (optional)
+
+Call once at app startup (SSR-safe, idempotent):
+
+```ts
+import { initCimpDiagnostics } from '@ragnarokansh/cimp-connect';
+
+initCimpDiagnostics({ appVersion: '1.4.2', release: import.meta.env.GIT_SHA });
+```
+
+From then on the SDK passively keeps small ring buffers of **console errors**,
+**failed network requests** (method + redacted URL + status — never bodies or
+headers), and **route breadcrumbs**. When the user clicks a `mode="fetch"`
+support button, a snapshot (plus userAgent/viewport/locale/timezone/appVersion)
+rides along to CIMP in the **URL fragment** — fragments are never sent to any
+server, so nothing lands in logs anywhere. The reporter sees a "Diagnostics
+attached" chip on the CIMP form and can inspect or remove it before
+submitting; support staff get a Diagnostics panel on the issue.
+
+Privacy guarantees: no request/response bodies, no headers, no cookies, no
+storage access; URLs redacted (`token`/`key`/`secret`/`password`/`auth*`/
+`code`/`session*` query values stripped); everything size-capped (~48KB).
+`extra: () => ({...})` attaches your own key/values (tenant, feature flags).
+
+Requires fetch-mode buttons (link mode 302s server-side and cannot carry a
+fragment).
+
 ## Core (any framework)
 
 ```ts
