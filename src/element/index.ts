@@ -36,6 +36,8 @@
 
 import { appendContextToUrl } from '../diagnostics';
 
+export { defineCimpKnownIssues } from './known-issues';
+
 const ICON_SVG =
   '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
   'style="width:1em;height:1em;flex:none;">' +

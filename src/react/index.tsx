@@ -1,6 +1,7 @@
 'use client';
 
-import type { AnchorHTMLAttributes, ReactElement } from 'react';
+import { useEffect, useState } from 'react';
+import type { AnchorHTMLAttributes, HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { appendContextToUrl } from '../diagnostics';
 
 export interface GetSupportButtonProps
@@ -124,5 +125,54 @@ export function GetSupportButton({
       {icon}
       {children ?? 'Get Support'}
     </a>
+  );
+}
+
+interface KnownIssue {
+  title: string;
+  status: string;
+  updatedAt: string;
+}
+
+/**
+ * Staff-published known issues for your platform, fetched from CIMP's public
+ * endpoint. Renders nothing when the list is empty or the request fails — it
+ * can never break the host app. Unstyled; pass className/style.
+ */
+export function KnownIssues({
+  cimpUrl,
+  platformKey,
+  title = "Known issues we're working on:",
+  ...rest
+}: {
+  cimpUrl: string;
+  platformKey: string;
+  title?: ReactNode;
+} & HTMLAttributes<HTMLDivElement>): ReactElement | null {
+  const [issues, setIssues] = useState<KnownIssue[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const base = cimpUrl.replace(/\/+$/, '');
+    fetch(`${base}/api/public/platforms/${encodeURIComponent(platformKey)}/known-issues`)
+      .then(async (res) => (res.ok ? ((await res.json()) as KnownIssue[]) : []))
+      .then((list) => { if (!cancelled) setIssues(Array.isArray(list) ? list : []); })
+      .catch(() => { if (!cancelled) setIssues([]); });
+    return () => { cancelled = true; };
+  }, [cimpUrl, platformKey]);
+
+  if (!issues || issues.length === 0) return null;
+  return (
+    <div role="status" {...rest}>
+      {title}
+      <ul style={{ margin: '0.4em 0 0', paddingLeft: '1.2em' }}>
+        {issues.map((i, idx) => (
+          <li key={idx} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5em' }}>
+            <span style={{ fontSize: '0.75em', opacity: 0.7 }}>{i.status}</span>
+            <span>{i.title}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
