@@ -24,6 +24,16 @@ export interface CimpDiagnosticsConfig {
   release?: string;
   /** Extra key/values to attach (feature flags, tenant, …). Called at click time. */
   extra?: () => Record<string, unknown>;
+  /**
+   * Screenshot hook, called at click time. Return a canvas (e.g. from
+   * html2canvas or the exported displayMediaScreenshot helper), a Blob, a
+   * data-URL string, or null to skip. The image is downscaled to ≤1200px JPEG
+   * and shown to the reporter on the CIMP form (removable) before it is
+   * submitted as a normal attachment.
+   */
+  captureScreenshot?: () =>
+    | Promise<Blob | HTMLCanvasElement | string | null>
+    | Blob | HTMLCanvasElement | string | null;
 }
 
 export interface CimpContext {
@@ -48,6 +58,11 @@ const MAX_CRUMBS = 10;
 const MAX_STR = 500;
 /** Hard cap on the encoded fragment; beyond it arrays are dropped, then null. */
 const MAX_FRAGMENT_CHARS = 48 * 1024;
+/** With a screenshot attached the fragment may grow to this (browsers accept far larger URLs). */
+const MAX_FRAGMENT_WITH_SCREENSHOT_CHARS = 480 * 1024;
+/** Encoded screenshot budget (data-URL chars ≈ bytes × 4/3). */
+const MAX_SCREENSHOT_CHARS = 360_000;
+const SCREENSHOT_MAX_WIDTH = 1_200;
 
 interface DiagState {
   config: CimpDiagnosticsConfig;
@@ -208,14 +223,20 @@ async function gzip(text: string): Promise<Uint8Array | null> {
 /**
  * Encode a context for the URL fragment: `1.<b64url(gzip(json))>`, or
  * `0.<b64url(utf8 json)>` where CompressionStream is unavailable. Over the
- * size cap, arrays are dropped largest-first; null if it still won't fit.
+ * size cap, the screenshot is dropped first, then arrays largest-first; null
+ * if it still won't fit.
  */
-export async function encodeContextFragment(ctx: CimpContext): Promise<string | null> {
-  const attempts: CimpContext[] = [
+export async function encodeContextFragment(
+  ctx: CimpContext & { screenshot?: string },
+  maxChars: number = MAX_FRAGMENT_CHARS,
+): Promise<string | null> {
+  const { screenshot, ...bare } = ctx;
+  const attempts: (CimpContext & { screenshot?: string })[] = [
     ctx,
-    { ...ctx, breadcrumbs: [] },
-    { ...ctx, breadcrumbs: [], failedRequests: [] },
-    { ...ctx, breadcrumbs: [], failedRequests: [], consoleErrors: [] },
+    ...(screenshot ? [bare as CimpContext] : []),
+    { ...bare, breadcrumbs: [] },
+    { ...bare, breadcrumbs: [], failedRequests: [] },
+    { ...bare, breadcrumbs: [], failedRequests: [], consoleErrors: [] },
   ];
   for (const attempt of attempts) {
     const json = JSON.stringify(attempt);
@@ -223,23 +244,110 @@ export async function encodeContextFragment(ctx: CimpContext): Promise<string | 
     const encoded = zipped
       ? `1.${base64UrlEncode(zipped)}`
       : `0.${base64UrlEncode(new TextEncoder().encode(json))}`;
-    if (encoded.length <= MAX_FRAGMENT_CHARS) return encoded;
+    // Once the screenshot is dropped, fall back to the tight default cap.
+    const cap = 'screenshot' in attempt && attempt.screenshot ? maxChars : MAX_FRAGMENT_CHARS;
+    if (encoded.length <= cap) return encoded;
   }
   return null;
 }
 
+// Normalize whatever the captureScreenshot hook returned into a downscaled
+// JPEG data URL, or null when it can't be made to fit.
+async function normalizeScreenshot(
+  raw: Blob | HTMLCanvasElement | string | null,
+): Promise<string | null> {
+  if (!raw) return null;
+  let bitmapSource: CanvasImageSource | null = null;
+  let width = 0;
+  let height = 0;
+
+  if (typeof HTMLCanvasElement !== 'undefined' && raw instanceof HTMLCanvasElement) {
+    bitmapSource = raw;
+    width = raw.width;
+    height = raw.height;
+  } else {
+    // The typeof-guarded instanceof above doesn't narrow for TS — assert here.
+    const nonCanvas = raw as Blob | string;
+    const blob = typeof nonCanvas === 'string' ? await (await fetch(nonCanvas)).blob() : nonCanvas;
+    if (!blob.type.startsWith('image/')) return null;
+    const bitmap = await createImageBitmap(blob);
+    bitmapSource = bitmap;
+    width = bitmap.width;
+    height = bitmap.height;
+  }
+  if (!width || !height) return null;
+
+  const scale = Math.min(1, SCREENSHOT_MAX_WIDTH / width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const ctx2d = canvas.getContext('2d');
+  if (!ctx2d) return null;
+  ctx2d.drawImage(bitmapSource, 0, 0, canvas.width, canvas.height);
+
+  for (const quality of [0.55, 0.35]) {
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+    if (dataUrl.length <= MAX_SCREENSHOT_CHARS) return dataUrl;
+  }
+  return null; // too large even at low quality — skip rather than blow the URL
+}
+
 /**
- * Append the current diagnostics to a handoff URL as a #cimpctx= fragment.
- * Returns the URL unchanged when diagnostics are uninitialized/empty or the
- * payload cannot fit. Used internally by the fetch-mode buttons.
+ * Append the current diagnostics (and, when configured, a screenshot) to a
+ * handoff URL as a #cimpctx= fragment. Returns the URL unchanged when
+ * diagnostics are uninitialized/empty or the payload cannot fit. Used
+ * internally by the fetch-mode buttons.
  */
 export async function appendContextToUrl(url: string): Promise<string> {
   const ctx = collectContext();
   if (!ctx) return url;
   try {
-    const encoded = await encodeContextFragment(ctx);
+    let screenshot: string | null = null;
+    if (state?.config.captureScreenshot) {
+      try {
+        screenshot = await normalizeScreenshot(await state.config.captureScreenshot());
+      } catch {
+        screenshot = null; // a failed capture must never block the handoff
+      }
+    }
+    const payload = screenshot
+      ? ({ ...ctx, screenshot } as CimpContext & { screenshot: string })
+      : ctx;
+    const encoded = await encodeContextFragment(
+      payload,
+      screenshot ? MAX_FRAGMENT_WITH_SCREENSHOT_CHARS : MAX_FRAGMENT_CHARS,
+    );
     return encoded ? `${url}#cimpctx=${encoded}` : url;
   } catch {
     return url;
+  }
+}
+
+/**
+ * Dependency-free screenshot source using the browser's screen-share picker
+ * (the user chooses what to share; one frame is grabbed, then the stream
+ * stops). Pass as `captureScreenshot: displayMediaScreenshot`. Apps that use
+ * html2canvas can pass `() => html2canvas(document.body)` instead — no
+ * permission prompt.
+ */
+export async function displayMediaScreenshot(): Promise<HTMLCanvasElement | null> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) return null;
+  let stream: MediaStream | null = null;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.muted = true;
+    await video.play();
+    await new Promise((r) => setTimeout(r, 200)); // let the first frame land
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')?.drawImage(video, 0, 0);
+    return canvas.width > 0 ? canvas : null;
+  } catch {
+    return null; // user dismissed the picker
+  } finally {
+    stream?.getTracks().forEach((t) => t.stop());
   }
 }
